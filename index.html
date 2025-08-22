@@ -18,6 +18,7 @@
       text-align: center; pointer-events: none;
     }
 
+    /* Clock, smaller and lighter */
     .clock {
       font-size: clamp(48px, 7vw, 112px);
       font-weight: 600;
@@ -50,9 +51,9 @@
     .w-cond { font-size: 16px; opacity: 0.9; }
     .w-meta { font-size: 13px; opacity: 0.85; margin-top: 2px; }
 
-    /* Controls */
+    /* Controls, dark gray */
     .controls {
-      position: fixed; bottom: 50px; right: 24px; display: flex; gap: 8px;
+      position: fixed; bottom: 16px; right: 24px; display: flex; gap: 8px;
     }
     .controls input, .controls button {
       font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid #333;
@@ -63,9 +64,9 @@
     .controls button:hover { background: #262626; }
     .controls button:active { background: #2e2e2e; }
 
-    /* Footer links */
+    /* Footer links, bottom-right */
     .links {
-      position: fixed; bottom: 100px; right: 24px;
+      position: fixed; bottom: 64px; right: 24px;
       display: flex; gap: 12px; align-items: center;
       font-size: 14px; opacity: 0.9;
       background: rgba(0,0,0,0.35);
@@ -78,37 +79,14 @@
 
     /* Photo credit */
     .credit {
-      position: fixed; bottom: 140px; left: 24px; font-size: 14px; opacity: 0.85;
+      position: fixed; bottom: 16px; left: 24px; font-size: 14px; opacity: 0.85;
       background: rgba(0,0,0,0.35); padding: 8px 10px; border-radius: 12px;
       display: none;
     }
     .link { color: #fff; }
 
-    /* News ticker */
-    #news-ticker {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: rgba(0,0,0,0.85);
-      color: #fff;
-      padding: 10px 0;
-      font-size: 16px;
-      white-space: nowrap;
-      overflow: hidden;
-      border-top: 1px solid #333;
-    }
-    #news-content {
-      display: inline-block;
-      padding-left: 100%;
-      animation: ticker 40s linear infinite;
-    }
-    @keyframes ticker {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-
     @media (max-width: 640px) {
-      .links { bottom: 120px; right: 12px; font-size: 13px; }
+      .links { bottom: 76px; right: 12px; font-size: 13px; }
     }
   </style>
 </head>
@@ -116,10 +94,11 @@
   <div id="bg" class="bg"></div>
   <div class="veil"></div>
 
-  <!-- top cluster -->
+  <!-- top center cluster -->
   <div id="top">
     <div id="clock" class="clock">00:00</div>
     <div id="date" class="date"></div>
+
     <div id="weatherBox" class="weather" role="status" aria-live="polite">
       <img id="wIcon" class="w-icon" alt="" />
       <div>
@@ -148,11 +127,7 @@
     <button id="fsBtn">Full screen</button>
   </div>
 
-  <!-- photo credit -->
   <div id="credit" class="credit"></div>
-
-  <!-- news ticker -->
-  <div id="news-ticker"><div id="news-content">Loading news...</div></div>
 
   <script>
     // Elements
@@ -170,7 +145,6 @@
     const applyBtn = document.getElementById("applyBtn");
     const geoBtn = document.getElementById("geoBtn");
     const fsBtn = document.getElementById("fsBtn");
-    const newsContent = document.getElementById("news-content");
 
     // State
     let photos = [];
@@ -202,11 +176,6 @@
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       return data.photos || [];
-    }
-    async function fetchNews(country = "us") {
-      const r = await fetch(`/api/news?country=${country}`);
-      if (!r.ok) throw new Error(await r.text());
-      return r.json();
     }
 
     // Background
@@ -250,24 +219,7 @@
         photos = ph.length ? ph : photos;
         photoIndex = 0;
         setBackground(photos[photoIndex]);
-        loadNews(w.country || "us");
       } catch (e) { console.error(e); }
-    }
-
-    // News render
-    async function loadNews(country = "us") {
-      try {
-        const data = await fetchNews(country.toLowerCase());
-        if (!data.articles || !data.articles.length) {
-          newsContent.textContent = "No news available";
-          return;
-        }
-        const headlines = data.articles.map(a => `${a.title} (${a.source})`);
-        newsContent.textContent = headlines.join("   •   ");
-      } catch (err) {
-        newsContent.textContent = "Error loading news";
-        console.error(err);
-      }
     }
 
     // Events
@@ -287,7 +239,6 @@
               const ph = await fetchPhotos("city skyline");
               photos = ph; photoIndex = 0; setBackground(photos[photoIndex]);
             }
-            loadNews(w.country || "us");
           } catch (e) { console.error(e); }
         },
         err => console.warn(err.message),

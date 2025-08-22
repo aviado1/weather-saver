@@ -4,16 +4,15 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env רק אם קיים (לוקאלי בלבד)
+# Load .env from this folder
 ENV_PATH = Path(__file__).parent / ".env"
-if ENV_PATH.exists():
-    load_dotenv(dotenv_path=ENV_PATH)
+load_dotenv(dotenv_path=ENV_PATH)
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
-OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
-PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
-NEWS_API_KEY = os.environ.get("NEWS_API_KEY", "")
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY") or ""
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY") or ""
+NEWS_API_KEY = os.environ.get("NEWS_API_KEY") or ""
 
 
 @app.route("/api/weather")
@@ -110,19 +109,27 @@ def api_news():
         return jsonify({"error": "Missing News API key"}), 500
 
     country = request.args.get("country", "us")
-    category = request.args.get("category")
+    query = request.args.get("q", "")
 
-    params = {"country": country, "apiKey": NEWS_API_KEY}
-    if category:
-        params["category"] = category
+    url = "https://newsapi.org/v2/top-headlines"
+    params = {"apiKey": NEWS_API_KEY, "country": country}
+    if query:
+        params["q"] = query
 
     try:
-        r = requests.get("https://newsapi.org/v2/top-headlines", params=params, timeout=15)
+        r = requests.get(url, params=params, timeout=15)
         if r.status_code != 200:
             return jsonify({"error": r.text}), r.status_code
         d = r.json()
     except requests.RequestException as e:
-        return jsonify({"error": str(e)}), 502
+        return jsonify({
+            "articles": [{
+                "title": "Error fetching news",
+                "description": str(e),
+                "url": "https://www.weather-saver.com",
+                "source": {"name": "Weather Saver"}
+            }]
+        })
 
     articles = []
     for a in d.get("articles", []):
@@ -131,6 +138,13 @@ def api_news():
             "url": a.get("url"),
             "source": a.get("source", {}).get("name")
         })
+
+    if not articles:
+        articles = [{
+            "title": "No news found",
+            "url": "https://www.weather-saver.com",
+            "source": "Weather Saver"
+        }]
 
     return jsonify({"articles": articles})
 
@@ -141,7 +155,7 @@ def index():
 
 
 if __name__ == "__main__":
-    print("DEBUG env path exists:", ENV_PATH.exists())
+    print("DEBUG env path:", ENV_PATH)
     print("DEBUG OW key length:", len(OPENWEATHER_API_KEY))
     print("DEBUG PEXELS key length:", len(PEXELS_API_KEY))
     print("DEBUG NEWS key length:", len(NEWS_API_KEY))

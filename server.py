@@ -12,6 +12,8 @@ app = Flask(__name__, static_folder=".", static_url_path="")
 
 OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY") or ""
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY") or ""
+NEWS_API_KEY = os.environ.get("NEWS_API_KEY") or ""
+
 
 @app.route("/api/weather")
 def api_weather():
@@ -52,11 +54,11 @@ def api_weather():
     }
     return jsonify(out)
 
+
 @app.route("/api/photos")
 def api_photos():
     q = request.args.get("q", "city skyline")
 
-    # If no Pexels key, return a placeholder image list so the UI still works
     if not PEXELS_API_KEY:
         photos = [{
             "url": f"https://picsum.photos/seed/{q.replace(' ', '%20')}/1920/1080",
@@ -100,12 +102,46 @@ def api_photos():
 
     return jsonify({"photos": photos})
 
+
+@app.route("/api/news")
+def api_news():
+    if not NEWS_API_KEY:
+        return jsonify({"error": "Missing News API key"}), 500
+
+    country = request.args.get("country", "us")
+    category = request.args.get("category")
+
+    params = {"country": country, "apiKey": NEWS_API_KEY}
+    if category:
+        params["category"] = category
+
+    try:
+        r = requests.get("https://newsapi.org/v2/top-headlines", params=params, timeout=15)
+        if r.status_code != 200:
+            return jsonify({"error": r.text}), r.status_code
+        d = r.json()
+    except requests.RequestException as e:
+        return jsonify({"error": str(e)}), 502
+
+    articles = []
+    for a in d.get("articles", []):
+        articles.append({
+            "title": a.get("title"),
+            "url": a.get("url"),
+            "source": a.get("source", {}).get("name")
+        })
+
+    return jsonify({"articles": articles})
+
+
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
+
 
 if __name__ == "__main__":
     print("DEBUG env path:", ENV_PATH)
     print("DEBUG OW key length:", len(OPENWEATHER_API_KEY))
     print("DEBUG PEXELS key length:", len(PEXELS_API_KEY))
+    print("DEBUG NEWS key length:", len(NEWS_API_KEY))
     app.run(host="0.0.0.0", port=5000, debug=True)

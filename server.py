@@ -4,15 +4,16 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from this folder
+# Load .env רק אם קיים (לוקאלי בלבד)
 ENV_PATH = Path(__file__).parent / ".env"
-load_dotenv(dotenv_path=ENV_PATH)
+if ENV_PATH.exists():
+    load_dotenv(dotenv_path=ENV_PATH)
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
-OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY") or ""
-PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY") or ""
-NEWS_API_KEY = os.environ.get("NEWS_API_KEY") or ""
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+NEWS_API_KEY = os.environ.get("NEWS_API_KEY", "")
 
 
 @app.route("/api/weather")
@@ -140,7 +141,7 @@ def index():
 
 
 if __name__ == "__main__":
-    print("DEBUG env path:", ENV_PATH)
+    print("DEBUG env path exists:", ENV_PATH.exists())
     print("DEBUG OW key length:", len(OPENWEATHER_API_KEY))
     print("DEBUG PEXELS key length:", len(PEXELS_API_KEY))
     print("DEBUG NEWS key length:", len(NEWS_API_KEY))
